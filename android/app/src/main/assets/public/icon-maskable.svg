@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full-bleed background for Android adaptive maskable safe zone (inner 80%) -->
+  <rect width="512" height="512" fill="#0F172A"/>
+  <circle cx="256" cy="272" r="118" fill="none" stroke="#334155" stroke-width="16"/>
+  <circle cx="256" cy="272" r="118" fill="none" stroke="#EA580C" stroke-width="16" stroke-dasharray="560 742" stroke-linecap="round" transform="rotate(-90 256 272)"/>
+  <rect x="236" y="122" width="40" height="20" rx="5" fill="#EA580C"/>
+  <rect x="248" y="140" width="16" height="18" fill="#94A3B8"/>
+  <path d="M256 196 L298 280 L269 270 L269 338 L243 338 L243 270 L214 280 Z" fill="#F8FAFC"/>
+  <circle cx="256" cy="338" r="13" fill="#EA580C"/>
+</svg>

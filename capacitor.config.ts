@@ -1,0 +1,15 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'br.com.rallychrono.coletor',
+  appName: 'RallyChrono Coletor',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https',
+  },
+  android: {
+    backgroundColor: '#0F172A',
+  },
+};
+
+export default config;

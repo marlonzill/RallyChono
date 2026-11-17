@@ -1,0 +1,6 @@
+{
+  "name": "RallyChrono — Coletor GPS & Apuração de Rally Regularidade",
+  "description": "Aplicativo Android PWA para registro silencioso de passagens GPS por tulipas e retaguarda de apuração de resultados em rally de regularidade.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
