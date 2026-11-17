@@ -26,7 +26,7 @@ jobs:
           java-version: '21'
 
       - name: Instalar dependências
-        run: npm ci
+        run: npm install
 
       - name: Compilar modo exclusivo Competidor e sincronizar Android
         run: npm run cap:sync
