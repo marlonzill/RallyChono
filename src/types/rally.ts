@@ -128,4 +128,36 @@ export interface CompetitorSummary {
   finalTotalPoints: number;
 }
 
-export type ActiveTab = 'inicial' | 'competidor' | 'navegacao' | 'apuracao' | 'instalar';
+export interface PublicStandingRow {
+  position: number;
+  carNumber: string;
+  crewName: string;
+  totalV: number;
+  recordedV: number;
+  missedV: number;
+  earlySecondsTotal: number;
+  lateSecondsTotal: number;
+  pointsFromV?: number;
+  missedPenaltyPoints?: number;
+  finalTotalPoints: number;
+}
+
+export interface PublishedStandingsSnapshot {
+  slug: string;
+  eventName: string;
+  createdAt: string;
+  publishedAtIso?: string;
+  missedPenaltyPts: number;
+  rows: PublicStandingRow[];
+  txtReport: string;
+  csvReport: string;
+}
+
+export type ActiveTab =
+  | 'inicial'
+  | 'navegacao'
+  | 'hodometro'
+  | 'velocidade'
+  | 'competidor'
+  | 'configuracoes'
+  | 'apuracao';

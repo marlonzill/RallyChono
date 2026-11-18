@@ -12,14 +12,22 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
+        includeAssets: [
+          'icon.svg',
+          'apple-touch-icon.png',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-512x512.png',
+          'pitstop-hero-3333.webp',
+          'pitstop-flag-streak.webp',
+        ],
         manifest: {
           id: '/',
-          name: 'RallyChrono — Coletor GPS & Apuração',
-          short_name: 'RallyChrono',
-          description: 'Coletor GPS silencioso para competidores e retaguarda de apuração para rally de regularidade.',
-          theme_color: '#0F172A',
-          background_color: '#0F172A',
+          name: 'PitStop Sports — Coletor GPS & Navegação',
+          short_name: 'PitStop Sports',
+          description: 'Navegação digital, hodômetro GPS com W Fino e coleta oficial PitStop Sports para rally de regularidade.',
+          theme_color: '#070B12',
+          background_color: '#070B12',
           display: 'standalone',
           orientation: 'portrait-primary',
           start_url: '/',
@@ -46,7 +54,8 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,txt}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,jpg,webp,svg,woff,woff2,txt}'],
+          globIgnores: ['assets/aistudio/**/*.{png,jpg,jpeg,pdf}'],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

@@ -1,6 +1,6 @@
 {
-  "name": "RallyChrono — Coletor GPS & Apuração de Rally Regularidade",
-  "description": "Aplicativo Android PWA para registro silencioso de passagens GPS por tulipas e retaguarda de apuração de resultados em rally de regularidade.",
-  "requestFramePermissions": ["geolocation"],
+  "name": "PitStop Sports — Coletor GPS & Navegação Rally",
+  "description": "Aplicativo oficial PitStop Sports para navegação digital por planilha (NBP/T15), hodômetro GPS, cantada por voz e coleta para apuração de rally de regularidade.",
+  "requestFramePermissions": ["geolocation", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="p-silver" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="52%" stop-color="#C0C4C9"/>
+      <stop offset="100%" stop-color="#6D7278"/>
+    </linearGradient>
+    <linearGradient id="p-red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF3B30"/>
+      <stop offset="52%" stop-color="#E10600"/>
+      <stop offset="100%" stop-color="#8F0400"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="#080B0D"/>
+  <rect x="16" y="16" width="480" height="480" rx="94" fill="none" stroke="#262A30" stroke-width="10"/>
+  <path d="M112 400 L200 104 L360 104 C416 104 440 144 424 208 C408 272 352 304 280 304 L208 304 L176 400 Z" fill="url(#p-silver)"/>
+  <path d="M216 168 L312 168 C344 168 352 184 344 216 C336 240 312 256 272 256 L192 256 Z" fill="#080B0D"/>
+  <path d="M312 104 L408 104 C448 136 456 200 408 264 L336 288 C384 248 392 184 352 136 Z" fill="url(#p-red)"/>
+  <path d="M72 376 L176 328 L152 416 Z" fill="url(#p-red)"/>
+</svg>

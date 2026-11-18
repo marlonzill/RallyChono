@@ -1,16 +1,27 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Award,
+  Check,
+  Copy,
   Download,
+  ExternalLink,
   FileSpreadsheet,
   FileText,
   FolderUp,
+  RefreshCw,
   Search,
+  Share2,
   ShieldAlert,
   Trash2,
   Trophy,
 } from 'lucide-react';
 import type { CompetitorResultFile, PassageRecord } from '../types/rally';
+import {
+  clearBaseResults,
+  deleteBaseResult,
+  fetchBaseResults,
+  publishPublicStandings,
+} from '../utils/baseApi';
 import { parseRoadbookTxt } from '../utils/rallyParser';
 import {
   formatFinalStandingsCsv,
@@ -38,11 +49,42 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
   onClearAll,
 }) => {
   const [missedPenaltyPts, setMissedPenaltyPts] = useState<number>(600);
+  const [eventFilter, setEventFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailFilter, setDetailFilter] = useState<DetailFilter>('V');
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [loadingDemo, setLoadingDemo] = useState(false);
+  const [syncingBase, setSyncingBase] = useState(false);
+  const [publishingLink, setPublishingLink] = useState(false);
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPortalUrl, setCopiedPortalUrl] = useState(false);
+
+  const portalUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}/?apuracao=1` : '/?apuracao=1';
+
+  const handleSyncBase = async () => {
+    setSyncingBase(true);
+    try {
+      const serverResults = await fetchBaseResults();
+      if (serverResults.length > 0) {
+        onAddResults(serverResults);
+        if (!selectedId) {
+          setSelectedId(serverResults[0].id);
+        }
+      }
+    } catch {
+      // Offline / static host fallback
+    } finally {
+      setSyncingBase(false);
+    }
+  };
+
+  useEffect(() => {
+    handleSyncBase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFilesSelected = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -90,8 +132,29 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
     }
   };
 
+  const availableEvents = useMemo(() => {
+    const names = new Set<string>();
+    for (const r of results) {
+      names.add((r.eventName || 'Prova sem título').trim());
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  }, [results]);
+
+  const eventScopedResults = useMemo(() => {
+    if (eventFilter === 'ALL') return results;
+    return results.filter(
+      (r) => (r.eventName || 'Prova sem título').trim() === eventFilter
+    );
+  }, [results, eventFilter]);
+
+  useEffect(() => {
+    if (eventFilter !== 'ALL' && !availableEvents.includes(eventFilter)) {
+      setEventFilter('ALL');
+    }
+  }, [availableEvents, eventFilter]);
+
   const rankedSummaries = useMemo(() => {
-    const summaries = results.map((r) =>
+    const summaries = eventScopedResults.map((r) =>
       summarizeCompetitorResult(r, missedPenaltyPts)
     );
     summaries.sort((a, b) => {
@@ -102,7 +165,7 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
       return a.pointsFromV - b.pointsFromV;
     });
     return summaries;
-  }, [results, missedPenaltyPts]);
+  }, [eventScopedResults, missedPenaltyPts]);
 
   const filteredSummaries = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -161,6 +224,67 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handlePublishPublicLink = async () => {
+    if (rankedSummaries.length === 0) return;
+    setPublishingLink(true);
+    setUploadErrors([]);
+    try {
+      const eventName =
+        eventFilter !== 'ALL'
+          ? eventFilter
+          : rankedSummaries[0]?.result.eventName || 'Classificação PitStop Sports';
+      const rows = rankedSummaries.map((s, idx) => ({
+        position: idx + 1,
+        carNumber: s.result.carNumber,
+        crewName: s.result.crewName,
+        totalV: s.totalV,
+        recordedV: s.recordedV,
+        missedV: s.missedV,
+        earlySecondsTotal: s.earlySecondsTotal,
+        lateSecondsTotal: s.lateSecondsTotal,
+        pointsFromV: s.pointsFromV,
+        missedPenaltyPoints: s.missedPenaltyPoints,
+        finalTotalPoints: s.finalTotalPoints,
+      }));
+      const res = await publishPublicStandings({
+        eventName,
+        missedPenaltyPts,
+        rows,
+        txtReport: formatFinalStandingsTxt(rankedSummaries, missedPenaltyPts),
+        csvReport: formatFinalStandingsCsv(rankedSummaries),
+      });
+      const fullUrl = `${window.location.origin}${res.path}`;
+      setPublishedUrl(fullUrl);
+    } catch (err) {
+      setUploadErrors([
+        err instanceof Error ? err.message : 'Erro ao publicar link público.',
+      ]);
+    } finally {
+      setPublishingLink(false);
+    }
+  };
+
+  const handleCopyPublishedUrl = async () => {
+    if (!publishedUrl) return;
+    try {
+      await navigator.clipboard.writeText(publishedUrl);
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      // Ignore clipboard restriction
+    }
+  };
+
+  const handleCopyPortalUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(portalUrl);
+      setCopiedPortalUrl(true);
+      window.setTimeout(() => setCopiedPortalUrl(false), 2000);
+    } catch {
+      // Ignore clipboard restriction
+    }
+  };
+
   const leader = rankedSummaries[0] ?? null;
   const second = rankedSummaries[1] ?? null;
   const third = rankedSummaries[2] ?? null;
@@ -168,32 +292,41 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Import & Scoring Rule Bar */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-800 bg-[#12161f] text-slate-100 shadow-lg">
-        <div aria-hidden="true" className="h-1.5 w-full rally-track-stripe" />
+      <section className="relative overflow-hidden rounded-2xl border border-zinc-800 bg-[#111214] text-[#F4F4F4] shadow-lg">
+        <div aria-hidden="true" className="pitstop-racing-line h-[10px] w-full sm:h-[12px]" />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-1.5 right-0 h-28 w-44 bg-rally-checkered opacity-35 [mask-image:linear-gradient(to_bottom_left,black,transparent)]"
+          className="pointer-events-none absolute top-1.5 right-0 h-28 w-44 bg-rally-checkered opacity-25 [mask-image:linear-gradient(to_bottom_left,black,transparent)]"
         />
 
         <div className="relative p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-[11px] font-bold tracking-[0.18em] text-orange-400 uppercase">
-                Secretaria de Prova
+              <p className="text-[11px] font-bold tracking-[0.18em] text-[#E10600] uppercase">
+                PitStop Sports · Secretaria de Prova Web
               </p>
               <h2 className="mt-0.5 font-['Barlow_Condensed'] text-2xl font-bold tracking-wide text-white sm:text-3xl">
-                Retaguarda — Apuração Geral e Individual
+                Apuração Oficial — Geral e Individual
               </h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Importe de uma só vez os arquivos <span className="font-mono text-xs text-slate-300">.txt</span>{' '}
-                de todos os competidores. O menor perdedor de pontos vence a prova.
+              <p className="mt-1 text-sm text-[#B5B5B5]">
+                Receba os registros diretamente do coletor ou importe arquivos <span className="font-mono text-xs text-zinc-200">.txt</span>. Menor pontuação vence.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="rally-btn-orange inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-all whitespace-nowrap shrink-0">
-                <FolderUp className="h-4 w-4" />
-                <span>Importar Todos os Competidores (.txt)</span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleSyncBase}
+                disabled={syncingBase}
+                className="pitstop-btn-red inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-all whitespace-nowrap shrink-0"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncingBase ? 'animate-spin' : ''}`} />
+                <span>{syncingBase ? 'Sincronizando...' : 'Atualizar da Base'}</span>
+              </button>
+
+              <label className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border border-zinc-700 bg-[#1E1E22] px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-zinc-800 whitespace-nowrap shrink-0">
+                <FolderUp className="h-4 w-4 text-[#C0C4C9]" />
+                <span>Importar (.txt)</span>
                 <input
                   type="file"
                   multiple
@@ -207,52 +340,101 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
                 type="button"
                 onClick={handleLoadDemoFiles}
                 disabled={loadingDemo}
-                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-700 bg-[#161b26] px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-[#1e2533] whitespace-nowrap shrink-0"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-zinc-700 bg-[#1E1E22] px-4 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-zinc-800 whitespace-nowrap shrink-0"
               >
-                <FileText className="h-4 w-4 text-orange-400" />
+                <FileText className="h-4 w-4 text-[#C0C4C9]" />
                 <span>{loadingDemo ? 'Gerando...' : 'Simular 3 Carros'}</span>
               </button>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-4 border-t border-slate-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="text-xs font-semibold text-slate-300">
-                Penalidade por PC &ldquo;V&rdquo; perdido (Não Passou):
-              </span>
-              <div className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-[#0a0d13] p-1">
-                {[0, 300, 600, 900].map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setMissedPenaltyPts(val)}
-                    className={`min-h-[32px] rounded-md px-2.5 font-mono text-xs font-semibold transition-all ${
-                      missedPenaltyPts === val
-                        ? 'rally-btn-orange text-white'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-800 bg-[#080B0D] px-3.5 py-2.5 text-xs">
+            <div className="min-w-0 flex-1">
+              <span className="font-semibold text-[#B5B5B5] mr-2">Link do Portal de Apuração:</span>
+              <span className="font-mono text-zinc-200 break-all">{portalUrl}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyPortalUrl}
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-zinc-700 bg-[#1E1E22] px-3 font-semibold text-white hover:bg-zinc-800 whitespace-nowrap shrink-0"
+            >
+              {copiedPortalUrl ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 text-[#C0C4C9]" />}
+              <span>{copiedPortalUrl ? 'Copiado' : 'Copiar Portal'}</span>
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-4 border-t border-zinc-800 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
+              {availableEvents.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-[#B5B5B5]">Prova:</span>
+                  <select
+                    aria-label="Filtrar competição"
+                    value={eventFilter}
+                    onChange={(e) => {
+                      setEventFilter(e.target.value);
+                      setPublishedUrl(null);
+                    }}
+                    className="min-h-[38px] max-w-[240px] rounded-lg border border-zinc-700 bg-[#080B0D] px-3 text-xs font-semibold text-white focus:border-[#E10600] focus:outline-none"
                   >
-                    {val} pts
-                  </button>
-                ))}
+                    <option value="ALL">Todas ({results.length} envios)</option>
+                    {availableEvents.map((ev) => (
+                      <option key={ev} value={ev}>
+                        {ev}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold text-[#B5B5B5]">
+                  Penalidade PC &ldquo;V&rdquo; NC:
+                </span>
+                <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-800 bg-[#080B0D] p-1">
+                  {[0, 300, 600, 900].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setMissedPenaltyPts(val)}
+                      className={`min-h-[32px] rounded-md px-2.5 font-mono text-xs font-semibold transition-all whitespace-nowrap ${
+                        missedPenaltyPts === val
+                          ? 'pitstop-btn-red text-white'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      {val} pts
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {results.length > 0 && (
+            {rankedSummaries.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={publishingLink}
+                  onClick={handlePublishPublicLink}
+                  className="pitstop-btn-red inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold text-white whitespace-nowrap shrink-0"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  <span>{publishingLink ? 'Gerando Link...' : 'Gerar Link Público'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() =>
                     downloadFile(
                       formatFinalStandingsTxt(rankedSummaries, missedPenaltyPts),
-                      'classificacao_final_rally.txt',
+                      'classificacao_final_pitstop.txt',
                       'text/plain;charset=utf-8'
                     )
                   }
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-700 bg-[#161b26] px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-[#1e2533] whitespace-nowrap shrink-0"
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-zinc-700 bg-[#1E1E22] px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 whitespace-nowrap shrink-0"
                 >
-                  <Download className="h-3.5 w-3.5 text-orange-400" />
-                  <span>Ranking Geral (.txt)</span>
+                  <Download className="h-3.5 w-3.5 text-[#C0C4C9]" />
+                  <span>Ranking (.txt)</span>
                 </button>
 
                 <button
@@ -260,23 +442,25 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
                   onClick={() =>
                     downloadFile(
                       formatFinalStandingsCsv(rankedSummaries),
-                      'classificacao_final_rally.csv',
+                      'classificacao_final_pitstop.csv',
                       'text/csv;charset=utf-8'
                     )
                   }
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-slate-700 bg-[#161b26] px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-[#1e2533] whitespace-nowrap shrink-0"
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-zinc-700 bg-[#1E1E22] px-3 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 whitespace-nowrap shrink-0"
                 >
                   <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
-                  <span>Planilha Excel (.csv)</span>
+                  <span>Excel (.csv)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
+                    clearBaseResults().catch(() => {});
                     onClearAll();
                     setSelectedId(null);
+                    setPublishedUrl(null);
                   }}
-                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-950/60 whitespace-nowrap shrink-0"
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-red-500/35 bg-red-950/30 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-950/60 whitespace-nowrap shrink-0"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Limpar Tudo</span>
@@ -284,6 +468,31 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
               </div>
             )}
           </div>
+
+          {publishedUrl && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E10600]/45 bg-[#E10600]/10 px-4 py-2.5 text-xs">
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-[#FF4A43] uppercase mr-2">Resultado Público:</span>
+                <a
+                  href={publishedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-white underline break-all"
+                >
+                  <span>{publishedUrl}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyPublishedUrl}
+                className="pitstop-btn-red inline-flex min-h-[34px] items-center gap-1 rounded-lg px-3 font-bold text-white whitespace-nowrap shrink-0"
+              >
+                {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                <span>{copiedLink ? 'Copiado!' : 'Copiar Link'}</span>
+              </button>
+            </div>
+          )}
 
           {uploadErrors.length > 0 && (
             <div className="mt-4 space-y-1 rounded-xl border border-red-500/40 bg-red-950/50 p-3 text-xs text-red-300">
@@ -299,21 +508,19 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
       </section>
 
       {/* Empty State */}
-      {results.length === 0 ? (
-        <section className="relative overflow-hidden rounded-2xl border border-dashed border-slate-700 bg-[#12161f] px-6 py-14 text-center">
+      {rankedSummaries.length === 0 ? (
+        <section className="relative overflow-hidden rounded-2xl border border-dashed border-zinc-700 bg-[#111214] px-6 py-14 text-center">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 bg-rally-checkered opacity-15"
           />
           <div className="relative">
-            <Trophy className="mx-auto h-10 w-10 text-orange-400" />
+            <Trophy className="mx-auto h-10 w-10 text-[#E10600]" />
             <h3 className="mt-3 font-['Barlow_Condensed'] text-2xl font-bold text-white">
-              Nenhum resultado importado ainda
+              Nenhum resultado recebido ainda
             </h3>
-            <p className="mx-auto mt-1.5 max-w-md text-sm text-slate-400">
-              Selecione todos os arquivos <span className="font-mono text-xs text-slate-300">.txt</span> enviados
-              pelos competidores ou clique em &ldquo;Simular 3 Carros&rdquo; para testar o ranking
-              geral e o boletim individual detalhado.
+            <p className="mx-auto mt-1.5 max-w-md text-sm text-[#B5B5B5]">
+              Os envios realizados pelo Coletor aparecem automaticamente aqui ao clicar em &ldquo;Atualizar da Base&rdquo;. Você também pode importar arquivos <span className="font-mono text-xs text-zinc-200">.txt</span> ou simular 3 carros.
             </p>
           </div>
         </section>
@@ -513,6 +720,11 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
                           <div className="text-xs text-slate-400 truncate max-w-[200px]">
                             {s.result.crewName}
                           </div>
+                          {eventFilter === 'ALL' && s.result.eventName && (
+                            <div className="text-[11px] text-zinc-500 truncate max-w-[200px]">
+                              {s.result.eventName}
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-3.5 text-right font-mono text-xs text-slate-300 tabular-nums">
                           {s.recordedV}/{s.totalV}
@@ -557,6 +769,7 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                deleteBaseResult(s.result.id).catch(() => {});
                                 onRemoveResult(s.result.id);
                               }}
                               aria-label={`Remover carro ${s.result.carNumber}`}
@@ -577,7 +790,7 @@ export const OrganizerBackoffice: React.FC<OrganizerBackofficeProps> = ({
           {/* Detailed Individual Breakdown */}
           {activeSummary && (
             <section className="overflow-hidden rounded-2xl border border-slate-800 bg-[#12161f] text-slate-100 shadow-lg">
-              <div aria-hidden="true" className="h-1 w-full rally-track-stripe" />
+              <div aria-hidden="true" className="pitstop-racing-line h-[4px] w-full" />
               <div className="border-b border-slate-800 px-5 py-4 sm:px-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>

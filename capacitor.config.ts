@@ -1,14 +1,16 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'br.com.rallychrono.coletor',
-  appName: 'RallyChrono Coletor',
+  appId: 'br.com.pitstopsports.coletor',
+  appName: 'PitStop Sports',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    cleartext: true,
   },
   android: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#070B12',
+    allowMixedContent: true,
   },
 };
 

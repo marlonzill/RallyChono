@@ -10,8 +10,8 @@
   html {
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
-    background-color: #090b10;
-    color: #f1f5f9;
+    background-color: #080B0D;
+    color: #F4F4F4;
   }
 
   h1, h2, .font-display-heading {
@@ -23,22 +23,30 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Carbon asphalt motorsport canvas */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* PitStop Sports Track Dark (#080B0D) + subtle Asphalt weave & Rally Red crown glow */
 .bg-rally-asphalt {
-  background-color: #090b10;
+  background-color: #080B0D;
   background-image:
-    radial-gradient(ellipse 90% 45% at 50% 0%, rgba(234, 88, 12, 0.12), transparent 65%),
+    radial-gradient(ellipse 85% 42% at 50% 0%, rgba(225, 6, 0, 0.14), transparent 62%),
     repeating-linear-gradient(
       45deg,
-      rgba(255, 255, 255, 0.015) 0px,
-      rgba(255, 255, 255, 0.015) 2px,
+      rgba(192, 196, 201, 0.014) 0px,
+      rgba(192, 196, 201, 0.014) 2px,
       transparent 2px,
       transparent 8px
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(255, 255, 255, 0.012) 0px,
-      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.008) 0px,
+      rgba(255, 255, 255, 0.008) 2px,
       transparent 2px,
       transparent 8px
     );
@@ -47,48 +55,83 @@
 /* Subtle checkered racing corner texture */
 .bg-rally-checkered {
   background-image:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.06) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.06) 75%);
+    linear-gradient(45deg, rgba(192, 196, 201, 0.06) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(192, 196, 201, 0.06) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(192, 196, 201, 0.06) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(192, 196, 201, 0.06) 75%);
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0;
 }
 
-/* Segmented track speed stripe (red -> orange -> amber) */
+/* PitStop Sports Checkered Flag Racing Streak (derived from faixa.png: red motion blur -> diagonal white cut -> slanted checkered flag -> dissolving asphalt) */
+.pitstop-racing-line,
 .rally-track-stripe {
+  position: relative;
+  overflow: hidden;
+  background-color: #080B0D;
+  background-image: url('/pitstop-flag-streak.webp');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.pitstop-racing-line::before,
+.rally-track-stripe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     90deg,
-    #dc2626 0%,
-    #ef4444 31%,
-    transparent 31%,
-    transparent 33%,
-    #ea580c 33%,
-    #f97316 66%,
-    transparent 66%,
-    transparent 68%,
-    #f59e0b 68%,
-    #fbbf24 100%
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 48%,
+    transparent 68%
   );
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
-/* Motorsport action buttons */
-.rally-btn-orange {
-  background: linear-gradient(180deg, #f97316 0%, #ea580c 55%, #c2410c 100%);
-  border: 1px solid rgba(251, 146, 60, 0.55);
-  box-shadow: 0 6px 18px -4px rgba(234, 88, 12, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-.rally-btn-orange:hover:not(:disabled) {
-  background: linear-gradient(180deg, #fb923c 0%, #f97316 55%, #ea580c 100%);
+.pitstop-racing-line::after,
+.rally-track-stripe::after {
+  content: none;
 }
 
-.rally-btn-red {
-  background: linear-gradient(180deg, #ef4444 0%, #dc2626 55%, #991b1b 100%);
-  border: 1px solid rgba(248, 113, 113, 0.5);
-  box-shadow: 0 6px 18px -4px rgba(220, 38, 38, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+/* Primary PitStop Sports Rally Red CTA */
+.pitstop-btn-red,
+.rally-btn-red,
+.rally-btn-orange,
+.pitstop-btn-blue {
+  background: linear-gradient(180deg, #FF2A2A 0%, #E10600 55%, #A80400 100%);
+  border: 1px solid rgba(255, 75, 70, 0.55);
+  color: #FFFFFF;
+  box-shadow: 0 6px 18px -4px rgba(225, 6, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
-.rally-btn-red:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f87171 0%, #ef4444 55%, #dc2626 100%);
+.pitstop-btn-red:hover:not(:disabled),
+.rally-btn-red:hover:not(:disabled),
+.rally-btn-orange:hover:not(:disabled),
+.pitstop-btn-blue:hover:not(:disabled) {
+  background: linear-gradient(180deg, #FF4444 0%, #FF1E17 55%, #C90500 100%);
+}
+.pitstop-btn-red:disabled,
+.rally-btn-red:disabled,
+.rally-btn-orange:disabled,
+.pitstop-btn-blue:disabled {
+  background: #1E1E22;
+  border: 1px solid #2C3038;
+  color: #9CA3AF;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Metallic Silver Secondary CTA */
+.pitstop-btn-metal {
+  background: linear-gradient(180deg, #2A2D33 0%, #1E1E22 55%, #141518 100%);
+  border: 1px solid rgba(192, 196, 201, 0.32);
+  color: #F4F4F4;
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.pitstop-btn-metal:hover:not(:disabled) {
+  border-color: rgba(192, 196, 201, 0.6);
+  background: linear-gradient(180deg, #343840 0%, #23252A 55%, #181A1E 100%);
 }
 
 .rally-btn-amber {
@@ -98,6 +141,51 @@
 }
 .rally-btn-amber:hover:not(:disabled) {
   background: linear-gradient(180deg, #fcd34d 0%, #fbbf24 55%, #f59e0b 100%);
+}
+
+/* Synchronized diagonal light sweep aligned with 3333.png metallic blades */
+@keyframes pitstopDiagSheen {
+  0% {
+    transform: translate3d(-75%, 25%, 0) rotate(-32deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.65;
+  }
+  65% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(85%, -25%, 0) rotate(-32deg);
+    opacity: 0;
+  }
+}
+
+@keyframes pitstopPulseGlow {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.38;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.78;
+  }
+}
+
+.pitstop-diag-sheen {
+  animation: pitstopDiagSheen 5.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.pitstop-diag-sheen-delayed {
+  animation: pitstopDiagSheen 7.4s ease-in-out 2.1s infinite;
+  will-change: transform, opacity;
+}
+
+.pitstop-hero-glow-red {
+  background: radial-gradient(circle at 54% 48%, rgba(225, 6, 0, 0.28) 0%, rgba(255, 255, 255, 0.08) 38%, transparent 70%);
+  animation: pitstopPulseGlow 4.4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 @media (prefers-reduced-motion: reduce) {
