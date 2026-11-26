@@ -1,4 +1,4 @@
-name: Gerar APK Competidor (RallyChrono)
+name: Gerar APK Competidor (PitStop)
 
 on:
   push:
@@ -43,18 +43,18 @@ jobs:
           ./gradlew assembleDebug
 
       - name: Renomear APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk RallyChrono.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk PitStop.apk
 
       - name: Disponibilizar APK nos Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: RallyChrono-Coletor-APK
-          path: RallyChrono.apk
+          name: PitStop-APK
+          path: PitStop.apk
           retention-days: 30
 
       - name: Publicar APK na aba Releases (Link Público)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: RallyChrono (Última Versão)
-          files: RallyChrono.apk
+          name: PitStop (Última Versão)
+          files: PitStop.apk
